@@ -4,262 +4,622 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Khetho May KPI Report · Loading</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cinzel:wght@400;500;600;700;900&family=DM+Sans:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cinzel:wght@400;500;600;700;900&family=DM+Sans:wght@200;300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { width:100%; height:100%; overflow:hidden; }
 
 body {
-  background:linear-gradient(135deg, #010810 0%, #020c18 50%, #0a2040 100%);
+  background:#010810;
   display:flex; align-items:center; justify-content:center;
   font-family:'DM Sans', sans-serif; color:#f4f8ff;
 }
 
-.loader-container {
-  position:relative; width:100%; height:100%;
-  display:flex; align-items:center; justify-content:center;
-  flex-direction:column; gap:3rem;
+/* Layered canvas stack */
+canvas { position:fixed; top:0; left:0; }
+#bg-canvas { z-index:0; }
+#grid-canvas { z-index:1; }
+#particles-canvas { z-index:2; }
+
+/* ── SCANLINE overlay ── */
+.scanlines {
+  position:fixed; inset:0; z-index:3; pointer-events:none;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.04) 2px,
+    rgba(0,0,0,0.04) 4px
+  );
 }
 
-/* Background canvas */
-canvas { position:fixed; top:0; left:0; z-index:0; }
+/* ── VIGNETTE ── */
+.vignette {
+  position:fixed; inset:0; z-index:4; pointer-events:none;
+  background:radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(1,8,16,0.85) 100%);
+}
 
+/* ── MAIN LAYOUT ── */
+.loader-container {
+  position:relative; z-index:10;
+  width:100%; height:100%;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column;
+}
+
+/* ── 3D RING SYSTEM ── */
+.ring-system {
+  position:relative;
+  width:320px; height:320px;
+  margin-bottom:-160px;
+  flex-shrink:0;
+}
+
+.ring-wrapper {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+}
+
+.ring {
+  position:absolute;
+  border-radius:50%;
+  border:1px solid transparent;
+}
+
+.ring-1 {
+  width:300px; height:300px;
+  border-top-color:rgba(34,120,224,0.8);
+  border-right-color:rgba(34,120,224,0.2);
+  border-bottom-color:transparent;
+  border-left-color:rgba(34,120,224,0.4);
+  animation:spin1 4s linear infinite;
+  box-shadow: inset 0 0 30px rgba(34,120,224,0.05), 0 0 20px rgba(34,120,224,0.15);
+}
+
+.ring-2 {
+  width:240px; height:240px;
+  border-top-color:transparent;
+  border-right-color:rgba(98,192,255,0.7);
+  border-bottom-color:rgba(98,192,255,0.3);
+  border-left-color:transparent;
+  animation:spin2 3s linear infinite reverse;
+  box-shadow:0 0 15px rgba(98,192,255,0.1);
+}
+
+.ring-3 {
+  width:180px; height:180px;
+  border-top-color:rgba(140,178,208,0.6);
+  border-right-color:transparent;
+  border-bottom-color:rgba(140,178,208,0.2);
+  border-left-color:rgba(140,178,208,0.5);
+  animation:spin1 5s linear infinite;
+}
+
+.ring-4 {
+  width:120px; height:120px;
+  border-top-color:transparent;
+  border-right-color:rgba(34,120,224,0.9);
+  border-bottom-color:rgba(34,120,224,0.3);
+  border-left-color:transparent;
+  animation:spin2 2s linear infinite;
+  box-shadow:0 0 20px rgba(34,120,224,0.2);
+}
+
+/* Orbital dots on ring-1 */
+.orbit-dot {
+  position:absolute;
+  border-radius:50%;
+  box-shadow:0 0 10px currentColor;
+}
+.dot-a {
+  width:8px; height:8px;
+  background:#62c0ff;
+  color:#62c0ff;
+  top:-4px; left:50%;
+  transform:translateX(-50%);
+  animation:spin1 4s linear infinite;
+  transform-origin:center 154px;
+}
+.dot-b {
+  width:5px; height:5px;
+  background:#2278e0;
+  color:#2278e0;
+  top:-2.5px; left:50%;
+  transform:translateX(-50%);
+  animation:spin2 3s linear infinite reverse;
+  transform-origin:center 122px;
+}
+
+/* Central core */
+.core {
+  position:absolute;
+  width:64px; height:64px;
+  border-radius:50%;
+  background:radial-gradient(circle at 38% 38%, #1a4a8a, #050e1e);
+  border:1px solid rgba(34,120,224,0.5);
+  box-shadow:
+    0 0 0 8px rgba(34,120,224,0.06),
+    0 0 0 16px rgba(34,120,224,0.03),
+    0 0 40px rgba(34,120,224,0.3);
+  animation:corePulse 3s ease-in-out infinite;
+  display:flex; align-items:center; justify-content:center;
+}
+
+.core-inner {
+  width:20px; height:20px;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #7fc4ff, #2278e0);
+  animation:coreInner 3s ease-in-out infinite;
+  box-shadow:0 0 20px rgba(98,192,255,0.8);
+}
+
+@keyframes spin1 { to { transform:rotate(360deg); } }
+@keyframes spin2 { to { transform:rotate(-360deg); } }
+@keyframes corePulse {
+  0%,100% { box-shadow:0 0 0 8px rgba(34,120,224,0.06), 0 0 0 16px rgba(34,120,224,0.03), 0 0 40px rgba(34,120,224,0.3); }
+  50% { box-shadow:0 0 0 12px rgba(34,120,224,0.1), 0 0 0 24px rgba(34,120,224,0.05), 0 0 60px rgba(34,120,224,0.5); }
+}
+@keyframes coreInner {
+  0%,100% { transform:scale(1); opacity:0.9; }
+  50% { transform:scale(1.15); opacity:1; }
+}
+
+/* ── TEXT CONTENT ── */
 .loader-content {
   position:relative; z-index:10;
   text-align:center;
-  animation:fadeIn 0.8s ease forwards;
+  padding:0 2rem;
+  animation:riseIn 1s cubic-bezier(0.16,1,0.3,1) 0.4s forwards;
+  opacity:0;
 }
 
-@keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes riseIn {
+  from { opacity:0; transform:translateY(24px); }
+  to { opacity:1; transform:translateY(0); }
+}
 
+/* Eyebrow */
+.eyebrow {
+  font-family:'Space Mono', monospace;
+  font-size:clamp(0.6rem, 1vw, 0.7rem);
+  letter-spacing:0.35em;
+  text-transform:uppercase;
+  color:rgba(98,192,255,0.5);
+  margin-bottom:1rem;
+  display:flex; align-items:center; justify-content:center; gap:1rem;
+}
+.eyebrow::before, .eyebrow::after {
+  content:'';
+  display:block;
+  width:40px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(98,192,255,0.4));
+}
+.eyebrow::after { transform:scaleX(-1); }
+
+/* Main headline */
 .loader-text {
   font-family:'Playfair Display', serif;
-  font-size:clamp(2rem, 8vw, 4.5rem);
+  font-size:clamp(2rem, 7vw, 4.2rem);
   font-weight:900;
-  line-height:1.1;
-  margin-bottom:1rem;
-  background:linear-gradient(110deg, #ffffff 0%, #f4f8ff 20%, #e8f3ff 40%, #cfe5ff 55%, #a8ccee 70%, #8cb2d0 85%, #c8d8e8 100%);
+  line-height:1.08;
+  letter-spacing:-0.02em;
+  background:linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #e8f3ff 25%,
+    #a8d4f5 50%,
+    #62c0ff 70%,
+    #8cb2d0 100%
+  );
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
   background-clip:text;
-  letter-spacing:-0.02em;
-  animation:textReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
-  opacity:0;
+  margin-bottom:0.5rem;
+  position:relative;
 }
 
-@keyframes textReveal {
-  from { opacity:0; transform:translateY(30px) scale(0.95); }
-  to { opacity:1; transform:translateY(0) scale(1); }
-}
-
+/* Subtitle */
 .loader-subtitle {
   font-family:'Cinzel', serif;
-  font-size:clamp(0.7rem, 1.2vw, 0.9rem);
-  letter-spacing:0.3em;
+  font-size:clamp(0.65rem, 1.1vw, 0.82rem);
+  letter-spacing:0.28em;
   text-transform:uppercase;
-  color:rgba(140, 178, 208, 0.6);
-  margin-bottom:3rem;
-  animation:fadeIn 1s ease 1s forwards;
-  opacity:0;
+  color:rgba(140,178,208,0.55);
+  margin-bottom:2.5rem;
 }
 
-/* Animated loading bars */
-.loader-bars {
+/* ── DATA STREAM BARS ── */
+.data-stream {
   display:flex;
-  gap:0.5rem;
+  gap:3px;
   align-items:flex-end;
   justify-content:center;
-  height:60px;
+  height:48px;
+  margin-bottom:2rem;
 }
 
-.bar {
-  width:6px;
-  background:linear-gradient(180deg, #2278e0, #62c0ff);
-  border-radius:10px;
-  animation:barWave 1.2s ease-in-out infinite;
-  box-shadow:0 0 12px rgba(34, 120, 224, 0.6);
+.stream-bar {
+  width:3px;
+  border-radius:2px;
+  background:linear-gradient(180deg, #62c0ff, #2278e0);
+  animation:streamBar 1.4s ease-in-out infinite;
+  box-shadow:0 0 8px rgba(98,192,255,0.5);
 }
 
-.bar:nth-child(1) { height:20%; animation-delay:0s; }
-.bar:nth-child(2) { height:40%; animation-delay:0.1s; }
-.bar:nth-child(3) { height:60%; animation-delay:0.2s; }
-.bar:nth-child(4) { height:40%; animation-delay:0.3s; }
-.bar:nth-child(5) { height:20%; animation-delay:0.4s; }
+.stream-bar:nth-child(1)  { animation-delay:0.00s; }
+.stream-bar:nth-child(2)  { animation-delay:0.07s; }
+.stream-bar:nth-child(3)  { animation-delay:0.14s; }
+.stream-bar:nth-child(4)  { animation-delay:0.21s; }
+.stream-bar:nth-child(5)  { animation-delay:0.28s; }
+.stream-bar:nth-child(6)  { animation-delay:0.35s; }
+.stream-bar:nth-child(7)  { animation-delay:0.42s; }
+.stream-bar:nth-child(8)  { animation-delay:0.49s; }
+.stream-bar:nth-child(9)  { animation-delay:0.56s; }
+.stream-bar:nth-child(10) { animation-delay:0.63s; }
+.stream-bar:nth-child(11) { animation-delay:0.70s; }
+.stream-bar:nth-child(12) { animation-delay:0.77s; }
+.stream-bar:nth-child(13) { animation-delay:0.84s; }
+.stream-bar:nth-child(14) { animation-delay:0.91s; }
+.stream-bar:nth-child(15) { animation-delay:0.98s; }
+.stream-bar:nth-child(16) { animation-delay:1.05s; }
+.stream-bar:nth-child(17) { animation-delay:1.12s; }
+.stream-bar:nth-child(18) { animation-delay:1.19s; }
+.stream-bar:nth-child(19) { animation-delay:1.26s; }
+.stream-bar:nth-child(20) { animation-delay:1.33s; }
 
-@keyframes barWave {
-  0%, 100% { height:20%; opacity:0.5; }
-  50% { height:80%; opacity:1; }
+@keyframes streamBar {
+  0%,100% { height:8%; opacity:0.3; }
+  50% { height:100%; opacity:1; }
 }
 
-/* Orbiting particles */
-.orbit-container {
-  position:absolute;
-  width:200px;
-  height:200px;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  z-index:5;
+/* ── PROGRESS BAR ── */
+.progress-track {
+  width:min(320px, 70vw);
+  height:2px;
+  background:rgba(34,120,224,0.12);
+  border-radius:1px;
+  margin:0 auto 1rem;
+  overflow:hidden;
+  position:relative;
 }
-
-.orbit {
-  position:absolute;
-  width:100%;
+.progress-fill {
   height:100%;
-  border:1px solid rgba(34, 120, 224, 0.1);
-  border-radius:50%;
+  width:0%;
+  background:linear-gradient(90deg, #2278e0, #62c0ff, #2278e0);
+  background-size:200% 100%;
+  border-radius:1px;
+  animation:progressGrow 3.8s cubic-bezier(0.4,0,0.2,1) forwards, shimmer 1.5s linear infinite;
+  box-shadow:0 0 12px rgba(98,192,255,0.6);
+}
+@keyframes progressGrow {
+  0%   { width:0%; }
+  30%  { width:45%; }
+  60%  { width:72%; }
+  80%  { width:88%; }
+  100% { width:100%; }
+}
+@keyframes shimmer {
+  0%   { background-position:200% 0; }
+  100% { background-position:-200% 0; }
 }
 
-.orbit:nth-child(1) { animation:rotate 12s linear infinite; }
-.orbit:nth-child(2) { animation:rotate 18s linear infinite reverse; width:70%; height:70%; top:15%; left:15%; }
-.orbit:nth-child(3) { animation:rotate 24s linear infinite; width:40%; height:40%; top:30%; left:30%; }
-
-@keyframes rotate { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-
-.orbit-dot {
-  position:absolute;
-  width:8px;
-  height:8px;
-  background:#62c0ff;
-  border-radius:50%;
-  top:0;
-  left:50%;
-  transform:translateX(-50%);
-  box-shadow:0 0 15px rgba(98, 192, 255, 0.8);
-}
-
-/* Loading progress text */
-.progress-text {
-  position:fixed;
-  bottom:3rem;
-  left:50%;
-  transform:translateX(-50%);
+/* ── BOTTOM STATUS ── */
+.status-line {
   font-family:'Space Mono', monospace;
-  font-size:0.75rem;
-  letter-spacing:0.2em;
-  color:rgba(140, 178, 208, 0.5);
-  animation:fadeIn 1.5s ease 1.5s forwards;
-  opacity:0;
+  font-size:0.68rem;
+  letter-spacing:0.18em;
+  color:rgba(98,192,255,0.35);
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:0.6rem;
 }
-
-.progress-dot {
+.blink-dot {
   display:inline-block;
-  width:4px;
-  height:4px;
+  width:5px; height:5px;
   background:#62c0ff;
   border-radius:50%;
-  margin:0 0.3rem;
-  animation:pulse 1.5s ease-in-out infinite;
+  box-shadow:0 0 8px rgba(98,192,255,0.8);
+  animation:blink 1.1s ease-in-out infinite;
 }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.15;} }
 
-.progress-dot:nth-child(1) { animation-delay:0s; }
-.progress-dot:nth-child(2) { animation-delay:0.2s; }
-.progress-dot:nth-child(3) { animation-delay:0.4s; }
-
-@keyframes pulse { 0%, 100% { opacity:0.3; } 50% { opacity:1; } }
-
-/* Glow effect */
-.glow {
-  position:absolute;
-  width:400px;
-  height:400px;
-  background:radial-gradient(circle, rgba(34, 120, 224, 0.15) 0%, transparent 70%);
-  border-radius:50%;
-  filter:blur(40px);
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  animation:glowPulse 3s ease-in-out infinite;
-  z-index:3;
+/* ── CORNER HUD DECORATIONS ── */
+.hud-corner {
+  position:fixed;
+  width:60px; height:60px;
+  z-index:10;
+  opacity:0.35;
 }
+.hud-tl { top:2rem; left:2rem; }
+.hud-tr { top:2rem; right:2rem; transform:scaleX(-1); }
+.hud-bl { bottom:2rem; left:2rem; transform:scaleY(-1); }
+.hud-br { bottom:2rem; right:2rem; transform:scale(-1,-1); }
+.hud-corner svg { width:100%; height:100%; }
 
-@keyframes glowPulse { 0%, 100% { opacity:0.5; } 50% { opacity:1; } }
+/* ── DATA NODES (floating) ── */
+.data-node {
+  position:fixed;
+  border:1px solid rgba(34,120,224,0.3);
+  border-radius:4px;
+  padding:0.35rem 0.7rem;
+  font-family:'Space Mono', monospace;
+  font-size:0.6rem;
+  letter-spacing:0.1em;
+  color:rgba(98,192,255,0.45);
+  background:rgba(34,120,224,0.05);
+  backdrop-filter:blur(4px);
+  z-index:9;
+  animation:nodeFloat 6s ease-in-out infinite;
+}
+.dn-1 { top:18%; left:5%; animation-delay:0s; }
+.dn-2 { top:25%; right:6%; animation-delay:1s; }
+.dn-3 { bottom:28%; left:4%; animation-delay:2s; }
+.dn-4 { bottom:22%; right:5%; animation-delay:0.5s; }
+.dn-5 { top:12%; left:50%; transform:translateX(-50%); animation-delay:1.5s; }
+@keyframes nodeFloat {
+  0%,100% { transform:translateY(0); opacity:0.6; }
+  50% { transform:translateY(-8px); opacity:1; }
+}
+/* override for centered node */
+.dn-5 {
+  animation:nodeFloatCenter 6s ease-in-out 1.5s infinite;
+}
+@keyframes nodeFloatCenter {
+  0%,100% { transform:translateX(-50%) translateY(0); opacity:0.6; }
+  50% { transform:translateX(-50%) translateY(-8px); opacity:1; }
+}
 </style>
 </head>
 <body>
+
+<!-- Render layers -->
 <canvas id="bg-canvas"></canvas>
+<canvas id="grid-canvas"></canvas>
+<canvas id="particles-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
 
+<!-- HUD corners -->
+<div class="hud-corner hud-tl">
+  <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 32 L2 2 L32 2" stroke="#62c0ff" stroke-width="1.5"/>
+    <path d="M2 20 L2 2 L20 2" stroke="#62c0ff" stroke-width="0.5" opacity="0.5"/>
+    <circle cx="2" cy="2" r="2.5" fill="#62c0ff"/>
+  </svg>
+</div>
+<div class="hud-corner hud-tr">
+  <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 32 L2 2 L32 2" stroke="#62c0ff" stroke-width="1.5"/>
+    <path d="M2 20 L2 2 L20 2" stroke="#62c0ff" stroke-width="0.5" opacity="0.5"/>
+    <circle cx="2" cy="2" r="2.5" fill="#62c0ff"/>
+  </svg>
+</div>
+<div class="hud-corner hud-bl">
+  <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 32 L2 2 L32 2" stroke="#62c0ff" stroke-width="1.5"/>
+    <path d="M2 20 L2 2 L20 2" stroke="#62c0ff" stroke-width="0.5" opacity="0.5"/>
+    <circle cx="2" cy="2" r="2.5" fill="#62c0ff"/>
+  </svg>
+</div>
+<div class="hud-corner hud-br">
+  <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 32 L2 2 L32 2" stroke="#62c0ff" stroke-width="1.5"/>
+    <path d="M2 20 L2 2 L20 2" stroke="#62c0ff" stroke-width="0.5" opacity="0.5"/>
+    <circle cx="2" cy="2" r="2.5" fill="#62c0ff"/>
+  </svg>
+</div>
+
+<!-- Floating data nodes -->
+<div class="data-node dn-1">SYS.INIT &nbsp;[OK]</div>
+<div class="data-node dn-2">KPI.STREAM &nbsp;▶</div>
+<div class="data-node dn-3">MAY.2026</div>
+<div class="data-node dn-4">0x4B48 · LIVE</div>
+<div class="data-node dn-5">BRANDSCAPERS AFRICA</div>
+
+<!-- Main loader -->
 <div class="loader-container">
-  <!-- Orbiting elements -->
-  <div class="orbit-container">
-    <div class="glow"></div>
-    <div class="orbit">
-      <div class="orbit-dot"></div>
-    </div>
-    <div class="orbit">
-      <div class="orbit-dot"></div>
-    </div>
-    <div class="orbit">
-      <div class="orbit-dot"></div>
+
+  <!-- Ring system sits above, overlaps text via negative margin -->
+  <div class="ring-system">
+    <div class="ring-wrapper">
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <div class="ring ring-3"></div>
+      <div class="ring ring-4"></div>
+      <!-- orbital dots positioned relative to wrapper -->
+      <div class="core">
+        <div class="core-inner"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Main content -->
+  <!-- Text block -->
   <div class="loader-content">
-    <div class="loader-text">Khetho May KPI Report</div>
-    <div class="loader-subtitle">Brandscapers Africa · 2026</div>
-    
-    <!-- Loading bars -->
-    <div class="loader-bars">
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
-      <div class="bar"></div>
+    <div class="eyebrow">Performance Report</div>
+    <div class="loader-text">Khetho<br>May KPI</div>
+    <div class="loader-subtitle">Brandscapers Africa &nbsp;·&nbsp; 2026</div>
+
+    <!-- Data stream bars -->
+    <div class="data-stream">
+      <div class="stream-bar"></div><div class="stream-bar"></div><div class="stream-bar"></div>
+      <div class="stream-bar"></div><div class="stream-bar"></div><div class="stream-bar"></div>
+      <div class="stream-bar"></div><div class="stream-bar"></div><div class="stream-bar"></div>
+      <div class="stream-bar"></div><div class="stream-bar"></div><div class="stream-bar"></div>
+      <div class="stream-bar"></div><div class="stream-bar"></div><div class="stream-bar"></div>
+      <div class="stream-bar"></div><div class="stream-bar"></div><div class="stream-bar"></div>
+      <div class="stream-bar"></div><div class="stream-bar"></div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-line">
+      <span class="blink-dot"></span>
+      Loading report
+      <span class="blink-dot" style="animation-delay:0.4s"></span>
     </div>
   </div>
 
-  <!-- Progress indicator -->
-  <div class="progress-text">
-    LOADING
-    <span class="progress-dot"></span>
-    <span class="progress-dot"></span>
-    <span class="progress-dot"></span>
-  </div>
 </div>
 
 <script>
-// Starfield background
-const canvas = document.getElementById('bg-canvas');
-const ctx = canvas.getContext('2d');
+/* ── STARFIELD ── */
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+/* ── PERSPECTIVE GRID ── */
+const gridCanvas = document.getElementById('grid-canvas');
+const gridCtx = gridCanvas.getContext('2d');
+
+/* ── PARTICLES ── */
+const partCanvas = document.getElementById('particles-canvas');
+const partCtx = partCanvas.getContext('2d');
+
+function resize() {
+  [bgCanvas, gridCanvas, partCanvas].forEach(c => {
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+  });
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+resize();
+window.addEventListener('resize', resize);
 
-// Create stars
-const stars = Array.from({length:150}, () => ({
-  x: Math.random() * canvas.width,
-  y: Math.random() * canvas.height,
-  r: Math.random() * 1.5 + 0.2,
-  a: Math.random() * 0.6 + 0.2,
-  sp: Math.random() * 0.008 + 0.002,
+/* STARS */
+const W = () => bgCanvas.width, H = () => bgCanvas.height;
+const stars = Array.from({length:180}, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  r: Math.random() * 1.4 + 0.2,
+  base: Math.random() * 0.5 + 0.15,
+  sp: Math.random() * 0.006 + 0.002,
   ph: Math.random() * Math.PI * 2
 }));
 
-let time = 0;
+/* GRID */
+const gridLines = { horiz:14, vert:20 };
+let gridOffset = 0;
 
-function drawStars() {
-  time += 0.008;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  stars.forEach(star => {
-    const alpha = star.a * (0.4 + 0.6 * Math.sin(time * star.sp + star.ph));
-    ctx.beginPath();
-    ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(172, 208, 240, ${alpha})`;
-    ctx.fill();
+/* PARTICLES */
+const particles = Array.from({length:60}, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  vx: (Math.random() - 0.5) * 0.0003,
+  vy: -(Math.random() * 0.0005 + 0.0001),
+  r: Math.random() * 2 + 0.5,
+  alpha: Math.random() * 0.4 + 0.1,
+  life: Math.random()
+}));
+
+let t = 0;
+
+function drawBg() {
+  bgCtx.clearRect(0,0,W(),H());
+  /* deep space gradient */
+  const grad = bgCtx.createRadialGradient(W()*0.5, H()*0.42, 0, W()*0.5, H()*0.5, W()*0.7);
+  grad.addColorStop(0, 'rgba(10,32,64,1)');
+  grad.addColorStop(0.5, 'rgba(2,12,24,1)');
+  grad.addColorStop(1, 'rgba(1,8,16,1)');
+  bgCtx.fillStyle = grad;
+  bgCtx.fillRect(0,0,W(),H());
+
+  stars.forEach(s => {
+    const a = s.base * (0.35 + 0.65 * Math.sin(t * s.sp + s.ph));
+    bgCtx.beginPath();
+    bgCtx.arc(s.x * W(), s.y * H(), s.r, 0, Math.PI*2);
+    bgCtx.fillStyle = `rgba(172,208,240,${a})`;
+    bgCtx.fill();
   });
-  
-  requestAnimationFrame(drawStars);
 }
 
-drawStars();
+function drawGrid() {
+  const w = W(), h = H();
+  gridCtx.clearRect(0,0,w,h);
 
-// Navigate to report after delay
+  gridOffset = (gridOffset + 0.004) % 1;
+  const horizon = h * 0.52;
+  const vanishX = w * 0.5;
+  const spread = w * 1.8;
+
+  /* vertical perspective lines */
+  for (let i = 0; i <= gridLines.vert; i++) {
+    const t2 = i / gridLines.vert;
+    const bx = vanishX + (t2 - 0.5) * spread;
+    const alpha = 0.06 + 0.06 * (1 - Math.abs(t2 - 0.5) * 1.6);
+    gridCtx.beginPath();
+    gridCtx.moveTo(vanishX, horizon);
+    gridCtx.lineTo(bx, h);
+    gridCtx.strokeStyle = `rgba(34,120,224,${alpha})`;
+    gridCtx.lineWidth = 0.7;
+    gridCtx.stroke();
+  }
+
+  /* horizontal lines with scroll effect */
+  const numH = 16;
+  for (let i = 0; i < numH; i++) {
+    const base = (i + gridOffset) / numH;
+    const persp = Math.pow(base, 2.2);
+    const y = horizon + persp * (h - horizon);
+    const lineT = 1 - base;
+    const hw = (spread / 2) * base;
+    const alpha = lineT * 0.12;
+    if (alpha < 0.005) continue;
+    gridCtx.beginPath();
+    gridCtx.moveTo(vanishX - hw, y);
+    gridCtx.lineTo(vanishX + hw, y);
+    gridCtx.strokeStyle = `rgba(34,120,224,${alpha})`;
+    gridCtx.lineWidth = 0.7;
+    gridCtx.stroke();
+  }
+
+  /* horizon glow */
+  const hGrad = gridCtx.createLinearGradient(0, horizon-40, 0, horizon+60);
+  hGrad.addColorStop(0, 'rgba(34,120,224,0)');
+  hGrad.addColorStop(0.5, 'rgba(34,120,224,0.06)');
+  hGrad.addColorStop(1, 'rgba(34,120,224,0)');
+  gridCtx.fillStyle = hGrad;
+  gridCtx.fillRect(0, horizon-40, w, 100);
+}
+
+function drawParticles() {
+  const w = W(), h = H();
+  partCtx.clearRect(0,0,w,h);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.life += 0.003;
+    if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); p.life = 0; }
+    if (p.x < 0 || p.x > 1) p.vx *= -1;
+    const a = p.alpha * Math.sin(p.life * Math.PI);
+    partCtx.beginPath();
+    partCtx.arc(p.x*w, p.y*h, p.r, 0, Math.PI*2);
+    partCtx.fillStyle = `rgba(98,192,255,${a})`;
+    partCtx.fill();
+  });
+}
+
+function loop() {
+  t += 0.01;
+  drawBg();
+  drawGrid();
+  drawParticles();
+  requestAnimationFrame(loop);
+}
+loop();
+
+/* ── TYPEWRITER STATUS ── */
+const statusEl = document.querySelector('.status-line');
+const phases = ['Initializing systems', 'Streaming KPI data', 'Rendering report', 'Complete'];
+let phaseIdx = 0;
+setInterval(() => {
+  if (phaseIdx < phases.length - 1) phaseIdx++;
+  const spans = statusEl.querySelectorAll('.blink-dot');
+  statusEl.childNodes[2].textContent = phases[phaseIdx];
+}, 1100);
+
+/* Navigate after delay */
 setTimeout(() => {
   window.location.href = './REPORT/index.html';
 }, 4500);
